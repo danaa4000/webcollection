@@ -1,0 +1,598 @@
+body {
+  margin: 0;
+  background-color: #000;
+  height: 100vh;
+  display: grid;
+  font-size: .6vmin;
+  overflow: hidden;
+}
+
+.scene {
+  width: 100em;
+  aspect-ratio: 1;
+  place-self: center;
+  perspective: 150em;
+  perspective-origin: 25% 25%;
+}
+
+body * {
+  transform-style: preserve-3d;
+}
+
+.scene,
+.scene *,
+.scene *::before,
+.scene *::after {
+  position: absolute;
+}
+
+.pivot, .sphere, .slice {
+  inset: 0;
+}
+
+.pivot {
+  animation: wobble 12s ease-in-out alternate infinite;
+}
+
+@keyframes wobble {
+  0% {
+    rotate: x -45deg;
+  }
+  100% {
+    rotate: x 45deg;
+  }
+}
+
+.sphere {
+  display: grid;
+  animation: spin 10s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    rotate: y 360deg;
+  }
+}
+
+.slice {
+  --ngon: 32;
+  --angle: calc(360deg/var(--ngon));
+  transform: rotateY(calc(var(--angle)*var(--sliceStep))) scaleX(calc(cos(var(--angle)/2)));
+  display: grid;
+  place-items: center;
+}
+
+.facet {
+  width: calc(100em*sin(var(--angle)/2));
+  aspect-ratio: 1;
+  --ptAngle: calc( atan( (sin(var(--angle)*(var(--ptStep) + 1)) - sin(var(--angle)*var(--ptStep)))/2 ) );
+  --peak: calc(-100% * sin(var(--angle)*(var(--facetStep) + 1))/(sin(var(--angle)*(var(--facetStep) + 1)) - sin(var(--angle)*var(--facetStep))) + 100%);
+  --clr3: hsl(calc(360deg - 10deg/(var(--ngon)/2)*var(--facetStep)) 100% calc(50% + 38%/(var(--ngon)/2)*var(--facetStep)));  
+  --clr4: hsl(calc(360deg - 10deg/(var(--ngon)/2)*(var(--facetStep) + 1)) 100% calc(50% + 38%/(var(--ngon)/2)*(var(--facetStep) + 1)));
+  background-image: linear-gradient(var(--clr3), var(--clr4)), conic-gradient(from calc(90deg*(1 + var(--dir)) - 1*var(--ptAngle)) at 50% var(--peak), var(--clr1),var(--clr2) calc(2*var(--ptAngle)), transparent 0);
+  background-blend-mode: difference;
+  -webkit-mask-image: conic-gradient(from calc(90deg*(1 + var(--dir)) - 1*var(--ptAngle)) at 50% var(--peak), black calc(2*var(--ptAngle)), transparent 0);
+  mask-image: conic-gradient(from calc(90deg*(1 + var(--dir)) - 1*var(--ptAngle)) at 50% var(--peak), black calc(2*var(--ptAngle)), transparent 0);
+  --pushZ: 52em;
+  transform: rotate(calc(90deg + var(--angle)*(.5 + var(--facetStep)))) translateX(calc(var(--pushZ)*cos(var(--angle)/2))) rotateY(calc(90deg));
+  --dir: 1;
+  padding-inline: 5px;
+}
+
+.facet:nth-child(n+9) {
+  --dir: -1;
+}
+
+.slice:nth-child(n-17) .facet:nth-child(n+9),
+.slice:nth-child(n+17) .facet:nth-child(n-9) {
+  --clr1: hsl(calc(60deg + 120deg/var(--ngon)*(var(--gradStep) + 1)) 100% calc(50% - 23%/var(--ngon)*(var(--gradStep) + 1)));  
+  --clr2: hsl(calc(60deg + 120deg/var(--ngon)*var(--gradStep)) 100% calc(50% - 23%/var(--ngon)*var(--gradStep)));
+}
+
+:where(.facet),
+.slice:nth-child(n+17) .facet:nth-child(n+9) {
+  --clr2: hsl(calc(60deg + 120deg/var(--ngon)*(var(--gradStep) + 1)) 100% calc(50% - 23%/var(--ngon)*(var(--gradStep) + 1)));  
+  --clr1: hsl(calc(60deg + 120deg/var(--ngon)*var(--gradStep)) 100% calc(50% - 23%/var(--ngon)*var(--gradStep)));
+}
+
+/* NAVIGATION/SETTINGS */
+
+input {
+  display: none;
+}
+
+.startBtn {
+  position: absolute;
+  width: 40em;
+  aspect-ratio: 1;
+  z-index: 1;
+  place-self: center;
+  --gradAngle: calc(90deg + atan(.5));
+  background-image: linear-gradient(var(--gradAngle),red, pink),conic-gradient(from 90deg at 50% 50%, green, yellow 135deg, green 0, yellow 225deg, green 0, yellow);
+  background-blend-mode: difference;
+  -webkit-mask-image: conic-gradient(from calc(270deg - atan(.5)) at 100% 50%, black calc(2*atan(.5)), transparent 0);
+  mask-image: conic-gradient(from calc(270deg - atan(.5)) at 100% 50%, black calc(2*atan(.5)), transparent 0);
+  transform-origin: 50% 50% 68em;
+  transition: all 2s ease-in;
+  backface-visibility: hidden;
+}
+
+.playBtn {
+  position: absolute;
+  width: max(25em, 60px);
+  aspect-ratio: 1;
+  margin: max(5em, 30px);
+  background-image: linear-gradient(pink, red), linear-gradient(90deg, yellow, green);
+  background-blend-mode: difference;
+  align-self: start;
+  overflow: hidden;
+}
+
+.playBtn::before, .playBtn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transition: all .5s ease-in-out;
+}
+
+.playBtn::before {
+  background-image: conic-gradient(from calc(270deg + atan(.5)), black calc(360deg - 2*atan(.5)), transparent 0);
+  background-size: 200% 100%;
+  transform-origin: 0 50%;
+  scale: 10 1;
+}
+
+.playBtn::after {
+  background-image: conic-gradient(from calc(180deg - atan(.15)) at 50% 0, black calc(2*atan(.15)), transparent 0);
+  transform-origin: 50% 100%;
+  scale: 1 10;
+}
+
+nav {
+  width: max(50em, 120px);
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-rows: repeat(2, 1fr);
+  grid-template-columns: repeat(2, 1fr);
+  margin: max(3em, 20px);
+  gap: max(3em, 20px);
+}
+
+nav label {
+  position: relative;
+  background-color: #fff;
+  border-radius: 50%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-clip: border-box;
+}
+
+nav label, .playBtn {
+  transform-origin: 0 0;
+  transition: scale .3s ease-in-out;
+}
+
+:is(nav label, .playBtn):hover {
+  scale: 1.2;
+}
+
+nav label::before, nav label::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+nav label::before {
+  background-image: linear-gradient(yellow,green), linear-gradient(90deg, pink,red);
+  background-blend-mode: difference;
+  mix-blend-mode: darken;
+  border-radius: 50%;
+  transition: filter .3s ease-in-out;
+}
+
+#patterns {
+  scale: -1 1;
+  justify-self: end;
+}
+
+#patterns label:nth-child(1) {
+  background-image:
+    radial-gradient(transparent 67%,black 0 75%, transparent 0),
+    radial-gradient(transparent 60%,black 0 75%, transparent 0),
+    linear-gradient(transparent 22%, black 0 27%, transparent 0 47%, black 0 52%, transparent 0 72%, black 0 77%, transparent 0 );
+  background-size: 75% 100%, 33% 100%, 100% 100%;
+}
+
+#patterns label:nth-child(2) {
+  background-image:
+    linear-gradient(#fff 20%, #000 0 40%, #fff 0 60%, #000 0 80%, #fff 0 100%),
+    radial-gradient(#fff 71%, transparent 0),
+    radial-gradient(#000 71%, transparent 0),
+    radial-gradient(#fff 71%, transparent 0),
+    radial-gradient(#000 71%, transparent 0);
+  background-size:
+   100% 100%,
+   23% 100%,
+   40% 100%,
+   62% 100%,
+   85% 100%;
+  background-blend-mode: difference;
+  box-shadow: inset 0 0 0 2px white;
+}
+
+#patterns label:nth-child(3) {
+  background-image:
+    radial-gradient(#fff 71%, transparent 0),
+    radial-gradient(black 71%, transparent 0),
+    radial-gradient(#fff 71%, transparent 0),
+    radial-gradient(black 71%, transparent 0);
+  background-size: 10% 100%, 32.5% 100%, 55% 100%, 77.5% 100%;
+}
+
+#fills {
+  place-self: end;
+  scale: -1 -1;
+}
+
+#fills label:nth-child(1)::after {
+  background-image: conic-gradient(from 90deg at 70% 25%, black 20deg, transparent 0), radial-gradient(at 80% 60%, black 5%, transparent 0);
+}
+
+#fills label:nth-child(2)::after {
+  background-image: repeating-conic-gradient(black 0 20deg, transparent 20deg 40deg), radial-gradient(black 60%, transparent 0);
+}
+
+
+/* toggles */
+
+#start:not(:checked) ~ .scene :is(.pivot,.sphere),
+#playPause:checked ~ .scene :is(.pivot,.sphere) {
+  animation-play-state: paused;
+}
+
+#start:checked ~ .startBtn {
+  rotate: y -180deg;
+  pointer-events: none;
+}
+
+#start:not(:checked) ~ .playBtn {
+  pointer-events: none;
+}
+
+#start:not(:checked) ~ .playBtn::before {
+  background-position-x: 100%;
+}
+
+#playPause:checked ~ .playBtn::before {
+  scale: 1 1;
+}
+
+#playPause:checked ~ .playBtn::after {
+  scale: 1 0;
+}
+
+#chess:checked ~ .scene :is(.slice:nth-child(2n) .facet:nth-child(odd), .slice:nth-child(odd) .facet:nth-child(2n)),
+#zebra:checked ~ .scene .slice:nth-child(odd) {
+  display: none;
+}
+
+#grid:checked ~ .scene .facet {
+  --pushZ: 52em;
+}
+
+:where(#chess,#zebra:checked) ~ .scene .facet {
+  --pushZ: 49em;
+}
+
+#backFace:checked ~ .scene .facet {
+  backface-visibility: hidden;
+}
+
+#ghost:checked ~ .scene .facet {
+  opacity: .5;
+}
+
+#grid:not(:checked) ~ #patterns label:nth-child(1),
+#chess:not(:checked) ~ #patterns label:nth-child(2),
+#zebra:not(:checked) ~ #patterns label:nth-child(3),
+#backFace:checked ~ #fills label:nth-child(1),
+#ghost:not(:checked) ~ #fills label:nth-child(2) {
+  filter: contrast(1.5) grayscale();
+}
+
+/* iterations */
+
+.slice:nth-child(1) {
+  --sliceStep: 0;
+}
+
+.slice:nth-child(2) {
+  --sliceStep: 1;
+}
+
+.slice:nth-child(3) {
+  --sliceStep: 2;
+}
+
+.slice:nth-child(4) {
+  --sliceStep: 3;
+}
+
+.slice:nth-child(5) {
+  --sliceStep: 4;
+}
+
+.slice:nth-child(6) {
+  --sliceStep: 5;
+}
+
+.slice:nth-child(7) {
+  --sliceStep: 6;
+}
+
+.slice:nth-child(8) {
+  --sliceStep: 7;
+}
+
+.slice:nth-child(9) {
+  --sliceStep: 8;
+}
+
+.slice:nth-child(10) {
+  --sliceStep: 9;
+}
+
+.slice:nth-child(11) {
+  --sliceStep: 10;
+}
+
+.slice:nth-child(12) {
+  --sliceStep: 11;
+}
+
+.slice:nth-child(13) {
+  --sliceStep: 12;
+}
+
+.slice:nth-child(14) {
+  --sliceStep: 13;
+}
+
+.slice:nth-child(15) {
+  --sliceStep: 14;
+}
+
+.slice:nth-child(16) {
+  --sliceStep: 15;
+}
+
+.slice:nth-child(17) {
+  --sliceStep: 16;
+}
+
+.slice:nth-child(18) {
+  --sliceStep: 17;
+}
+
+.slice:nth-child(19) {
+  --sliceStep: 18;
+}
+
+.slice:nth-child(20) {
+  --sliceStep: 19;
+}
+
+.slice:nth-child(21) {
+  --sliceStep: 20;
+}
+
+.slice:nth-child(22) {
+  --sliceStep: 21;
+}
+
+.slice:nth-child(23) {
+  --sliceStep: 22;
+}
+
+.slice:nth-child(24) {
+  --sliceStep: 23;
+}
+
+.slice:nth-child(25) {
+  --sliceStep: 24;
+}
+
+.slice:nth-child(26) {
+  --sliceStep: 25;
+}
+
+.slice:nth-child(27) {
+  --sliceStep: 26;
+}
+
+.slice:nth-child(28) {
+  --sliceStep: 27;
+}
+
+.slice:nth-child(29) {
+  --sliceStep: 28;
+}
+
+.slice:nth-child(30) {
+  --sliceStep: 29;
+}
+
+.slice:nth-child(31) {
+  --sliceStep: 30;
+}
+
+.slice:nth-child(32) {
+  --sliceStep: 31;
+}
+
+/* this switches the incrementation and goes backwards at the midpoint  */
+
+.slice:nth-child(1), .slice:nth-last-child(1) {
+  --gradStep: 0;
+}
+
+.slice:nth-child(2), .slice:nth-last-child(2) {
+  --gradStep: 1;
+}
+
+.slice:nth-child(3), .slice:nth-last-child(3) {
+  --gradStep: 2;
+}
+
+.slice:nth-child(4), .slice:nth-last-child(4) {
+  --gradStep: 3;
+}
+
+.slice:nth-child(5), .slice:nth-last-child(5) {
+  --gradStep: 4;
+}
+
+.slice:nth-child(6), .slice:nth-last-child(6) {
+  --gradStep: 5;
+}
+
+.slice:nth-child(7), .slice:nth-last-child(7) {
+  --gradStep: 6;
+}
+
+.slice:nth-child(8), .slice:nth-last-child(8) {
+  --gradStep: 7;
+}
+
+.slice:nth-child(9), .slice:nth-last-child(9) {
+  --gradStep: 8;
+}
+
+.slice:nth-child(10), .slice:nth-last-child(10) {
+  --gradStep: 9;
+}
+
+.slice:nth-child(11), .slice:nth-last-child(11) {
+  --gradStep: 10;
+}
+
+.slice:nth-child(12), .slice:nth-last-child(12) {
+  --gradStep: 11;
+}
+
+.slice:nth-child(13), .slice:nth-last-child(13) {
+  --gradStep: 12;
+}
+
+.slice:nth-child(14), .slice:nth-last-child(14) {
+  --gradStep: 13;
+}
+
+.slice:nth-child(15), .slice:nth-last-child(15) {
+  --gradStep: 14;
+}
+
+.slice:nth-child(16), .slice:nth-last-child(16) {
+  --gradStep: 15;
+}
+
+/* incrementing the facet's step variable */
+
+.facet:nth-child(1) {
+  --facetStep: 0;
+}
+
+.facet:nth-child(2) {
+  --facetStep: 1;
+}
+
+.facet:nth-child(3) {
+  --facetStep: 2;
+}
+
+.facet:nth-child(4) {
+  --facetStep: 3;
+}
+
+.facet:nth-child(5) {
+  --facetStep: 4;
+}
+
+.facet:nth-child(6) {
+  --facetStep: 5;
+}
+
+.facet:nth-child(7) {
+  --facetStep: 6;
+}
+
+.facet:nth-child(8) {
+  --facetStep: 7;
+}
+
+.facet:nth-child(9) {
+  --facetStep: 8;
+}
+
+.facet:nth-child(10) {
+  --facetStep: 9;
+}
+
+.facet:nth-child(11) {
+  --facetStep: 10;
+}
+
+.facet:nth-child(12) {
+  --facetStep: 11;
+}
+
+.facet:nth-child(13) {
+  --facetStep: 12;
+}
+
+.facet:nth-child(14) {
+  --facetStep: 13;
+}
+
+.facet:nth-child(15) {
+  --facetStep: 14;
+}
+
+.facet:nth-child(16) {
+  --facetStep: 15;
+}
+
+/* this switches the incrementation and goes backwards at the midpoint */
+
+.facet:nth-child(1), .facet:nth-last-child(1) {
+  --ptStep: 0;
+}
+
+.facet:nth-child(2), .facet:nth-last-child(2) {
+  --ptStep: 1;
+}
+
+.facet:nth-child(3), .facet:nth-last-child(3) {
+  --ptStep: 2;
+}
+
+.facet:nth-child(4), .facet:nth-last-child(4) {
+  --ptStep: 3;
+}
+
+.facet:nth-child(5), .facet:nth-last-child(5) {
+  --ptStep: 4;
+}
+
+.facet:nth-child(6), .facet:nth-last-child(6) {
+  --ptStep: 5;
+}
+
+.facet:nth-child(7), .facet:nth-last-child(7) {
+  --ptStep: 6;
+}
+
+.facet:nth-child(8), .facet:nth-last-child(8) {
+  --ptStep: 7;
+}
